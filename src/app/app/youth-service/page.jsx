@@ -2,6 +2,6 @@ import React from 'react'
 
 export default function page() {
   return (
-    <div>homepage or landing page</div>
+    <div>youthserive page</div>
   )
 }

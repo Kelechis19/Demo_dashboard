@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { DonutChartHero } from "../components/ui/DonutChartHero";
 import { ServiceUptake } from "../components/ui/ServiceUptake";
+import { KPIScorecard } from "../components/ui/KPIScoreboard";
 
 // Reusable Metric Card Component
 const MetricCard = ({ title, value, change, trend, icon: Icon, color }) => {
@@ -189,27 +190,10 @@ const DashboardPage = () => {
 				{/* Right: Budget Chart */}
 				<DonutChartHero />
 			</div>
+      <KPIScorecard />
 
 			{/* Content Grid - Stacks on mobile, Side-by-side on desktop */}
-			<div className='grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8'>
-				{/* Table takes 2 columns width on large screens */}
-				<div className='xl:col-span-2 order-2 xl:order-1'>
-					<RecentActivityTable />
-				</div>
-
-				{/* Demographics Chart takes 1 column width */}
-				<div className='bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit order-1 xl:order-2'>
-					<h3 className='text-lg font-bold text-gray-900 mb-4'>Demographics</h3>
-					<div className='flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200'>
-						<div className='text-center'>
-							<PieChart className='mx-auto h-12 w-12 text-gray-400' />
-							<span className='mt-2 block text-sm font-medium text-gray-900'>
-								Chart Placeholder
-							</span>
-						</div>
-					</div>
-				</div>
-			</div>
+			
 		</div>
 	);
 };

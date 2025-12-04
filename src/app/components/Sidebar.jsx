@@ -31,7 +31,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       id: "youth-services",
       icon: Users,
       label: "Youth Services",
-      href: "/app/youth-services",
+      href: "/app/youth-service", // This is now a clickable page
       subItems: [
         {
           id: "youths-enrolled",
@@ -73,7 +73,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     },
   ];
 
-  const toggleExpand = (itemId) => {
+  const toggleExpand = (e, itemId) => {
+    // Stop the click from bubbling up (prevents clicking the arrow from triggering navigation if nested)
+    e.preventDefault();
+    e.stopPropagation(); 
     setExpandedItems((prev) =>
       prev.includes(itemId)
         ? prev.filter((id) => id !== itemId)
@@ -100,28 +103,47 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         {showDivider && <div className="my-2 border-t border-gray-200"></div>}
         <div>
           {hasSubItems ? (
-            <button
-              onClick={() => toggleExpand(item.id)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 mb-1 ${
+            /* CHANGE: Instead of a <button> wrapper, we use a <div> wrapper.
+               Inside, we have a <Link> for the text and a <button> for the arrow.
+            */
+            <div
+              className={`w-full flex items-center justify-between rounded-xl transition-all duration-200 mb-1 ${
                 isActive
                   ? "bg-orange-100 text-orange-700"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <div className="flex items-center space-x-3">
+              {/* 1. The Link Part (Text + Icon) */}
+              <Link
+                href={item.href}
+                onClick={() => {
+                  if (window.innerWidth < 768) {
+                    setIsOpen(false);
+                  }
+                }}
+                className="flex-1 flex items-center space-x-3 px-4 py-3 cursor-pointer"
+              >
                 <Icon
                   size={20}
                   className={isActive ? "text-orange-600" : "text-gray-500"}
                 />
                 <span className="font-medium text-sm">{item.label}</span>
-              </div>
-              {isExpanded ? (
-                <ChevronDown size={18} />
-              ) : (
-                <ChevronRight size={18} />
-              )}
-            </button>
+              </Link>
+
+              {/* 2. The Toggle Part (Arrow Button) */}
+              <button
+                onClick={(e) => toggleExpand(e, item.id)}
+                className="p-3 hover:bg-black/5 rounded-r-xl transition-colors"
+              >
+                {isExpanded ? (
+                  <ChevronDown size={18} />
+                ) : (
+                  <ChevronRight size={18} />
+                )}
+              </button>
+            </div>
           ) : (
+            /* Standard Items without children */
             <Link
               href={item.href}
               onClick={() => {
@@ -160,12 +182,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   };
 
   return (
-    <div
+   <div
       className={`
       fixed md:static inset-y-0 left-0 z-40
       w-72 bg-white md:rounded-2xl shadow-xl overflow-y-auto
       transform transition-transform duration-300 ease-in-out
-      md:transform-none md:m-4 md:h-[calc(100vh-2rem)]
+      md:transform-none md:m-4 md:min-h-[calc(100vh-2rem)]
       ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
     `}
     >

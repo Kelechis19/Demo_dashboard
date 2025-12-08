@@ -16,7 +16,7 @@ export const ServiceUptake = () => {
       </div>
       
       {/* We use the component we just built, passing the gray color from your design */}
-      <BarList data={serviceData} color="bg-gray-500" />
+      <BarList className="space-y-3" data={serviceData} color="bg-gray-500"/>
     </div>
   )
 }

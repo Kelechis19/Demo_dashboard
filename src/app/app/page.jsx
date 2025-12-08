@@ -190,10 +190,9 @@ const DashboardPage = () => {
 				{/* Right: Budget Chart */}
 				<DonutChartHero />
 			</div>
-      <KPIScorecard />
+			<KPIScorecard />
 
 			{/* Content Grid - Stacks on mobile, Side-by-side on desktop */}
-			
 		</div>
 	);
 };

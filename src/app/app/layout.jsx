@@ -1,4 +1,3 @@
-// src/app/app/layout.jsx
 "use client";
 
 import React, { useState } from "react";
@@ -10,7 +9,8 @@ export default function AppLayout({ children }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-linear-to-br from-gray-50 to-gray-100">
+    // CHANGE 1: Use 'h-screen' and 'overflow-hidden' to stop the whole browser window from scrolling
+    <div className="flex h-screen bg-linear-to-br from-gray-50 to-gray-100 overflow-hidden">
       
       {/* Mobile Menu Button */}
       <button
@@ -31,17 +31,20 @@ export default function AppLayout({ children }) {
       {/* Sidebar Component */}
       <Sidebar isOpen={isMobileOpen} setIsOpen={setIsMobileOpen} />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen w-full">
+      
+      <div className="flex-1 flex flex-col h-full w-full">
         
-        {/* Header Component */}
+        
         <Header />
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 md:p-8 md:pt-4 md:pr-4">
-          <div className="bg-white md:rounded-2xl shadow-sm p-6 md:p-8 min-h-[calc(100vh-12rem)]">
+       
+        <main className="flex-1 p-4 md:p-8 md:pt-4 md:pr-4 overflow-hidden">
+          
+        
+          <div className="bg-white md:rounded-2xl shadow-sm p-6 md:p-8 h-full overflow-y-auto custom-scrollbar custom-scrollbar-cursor-pointer">
             {children}
           </div>
+
         </main>
       </div>
     </div>

@@ -120,4 +120,31 @@
     @apply bg-background text-foreground;
   }
 }
+@layer utilities {
+  /* Define the custom scrollbar class */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 7px; /* Width of the vertical scrollbar */
+    height: 6px; /* Height of the horizontal scrollbar */
+  }
+
+  /* The Track (background) */
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent; /* Makes track invisible */
+    border-radius: 10px;
+  }
+
+  /* The Handle (thumb) */
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #d1d5db; /* gray-300 */
+    border-radius: 10px;
+  }
+
+  /* Handle on hover */
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af; /* gray-400 */
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af; /* gray-400 */
+  }
+}
 

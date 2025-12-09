@@ -123,40 +123,11 @@ export default function AdminPage() {
 	};
 
 	return (
-		<div className='min-h-screen bg-gray-50 p-6 font-sans space-y-6'>
+		<div className=' bg-gray-50 p-6 font-sans space-y-6'>
 			{/* 1. Page Header & Actions */}
-			<div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-4'>
-				{/* Search */}
-				<div className='relative w-full md:w-96'>
-					<Search
-						className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400'
-						size={18}
-					/>
-					<Input
-						placeholder='Search'
-						className='pl-10 h-10 bg-white border-gray-200'
-					/>
-				</div>
-
+			<div className='flex flex-col md:flex-row justify-between items-start lg:justify-end md:items-center gap-4'>
 				{/* Action Buttons */}
 				<div className='flex flex-wrap gap-2 w-full md:w-auto items-center'>
-					<Button
-						variant='ghost'
-						size='icon'
-						className='text-gray-400 hover:text-gray-600'>
-						<Filter size={18} />
-					</Button>
-					<Button
-						variant='outline'
-						className='h-9 text-xs text-gray-600 bg-white gap-1'>
-						Filter By
-					</Button>
-					<Button
-						variant='outline'
-						className='h-9 text-xs text-gray-600 bg-white gap-1'>
-						Date <ChevronDown size={14} />
-					</Button>
-
 					{/* ADD ADMIN DIALOG */}
 					<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 						<DialogTrigger asChild>

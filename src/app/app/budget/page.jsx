@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -12,18 +12,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Search,
   Filter,
   Plus,
   Download,
   Upload,
   ChevronDown,
-  RotateCcw
+  RotateCcw,
+  X,
+  FileSpreadsheet,
+  FileText,
+  CloudUpload,
+  CheckCircle2,
 } from "lucide-react";
-// Importing Recharts directly since we are defining the component locally to avoid import errors
+// Importing Recharts directly
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 
-// --- 1. Local Chart Component (To fix import error) ---
+// --- 1. Local Chart Component ---
 
 const DonutChart = ({ data, category, value, valueFormatter }) => {
   return (
@@ -50,7 +62,6 @@ const DonutChart = ({ data, category, value, valueFormatter }) => {
           />
         </PieChart>
       </ResponsiveContainer>
-      {/* Centered Text Overlay */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <span className="text-3xl font-bold text-gray-800">45%</span>
       </div>
@@ -61,10 +72,10 @@ const DonutChart = ({ data, category, value, valueFormatter }) => {
 // --- 2. Data ---
 
 const budgetBreakdownData = [
-  { name: "Youth Training", amount: 83, color: "#4b5563" }, // dark gray
-  { name: "Mental Health", amount: 67, color: "#9ca3af" }, // medium gray
-  { name: "Cultural Events", amount: 86, color: "#d1d5db" }, // light gray
-  { name: "Admin & Staff", amount: 100, color: "#e5e7eb" }, // lighter gray
+  { name: "Youth Training", amount: 83, color: "#4b5563" },
+  { name: "Mental Health", amount: 67, color: "#9ca3af" },
+  { name: "Cultural Events", amount: 86, color: "#d1d5db" },
+  { name: "Admin & Staff", amount: 100, color: "#e5e7eb" },
 ];
 
 const budgetVsSpentData = [
@@ -120,40 +131,12 @@ const recentItemsData = [
     total: 175.00,
     date: "2025-07-08 13:47"
   },
-  {
-    no: "IN_006",
-    category: "Youth Training",
-    itemName: "Land-Based Camp Equipment (rental)",
-    qty: 2,
-    unitPrice: 320.00,
-    total: 640.00,
-    date: "2025-07-19 16:22"
-  },
-  {
-    no: "IN_007",
-    category: "Youth Training",
-    itemName: "Career Fair Booth Fee",
-    qty: 1,
-    unitPrice: 300.00,
-    total: 300.00,
-    date: "2025-08-01 10:06"
-  },
-  {
-    no: "IN_008",
-    category: "Youth Training",
-    itemName: "Printing Outreach Flyers",
-    qty: 500,
-    unitPrice: 0.22,
-    total: 110.00,
-    date: "2025-08-03 12:41"
-  },
 ];
 
 // --- 3. Helper Components ---
 
-// Bar Component for "Budget vs Spent"
 const BudgetBar = ({ label, budget, spent }) => {
-  const maxVal = Math.max(budget, spent) * 1.2; // 20% buffer for visual scaling
+  const maxVal = Math.max(budget, spent) * 1.2; 
   const spentWidth = (spent / maxVal) * 100;
   const budgetWidth = (budget / maxVal) * 100;
 
@@ -161,13 +144,11 @@ const BudgetBar = ({ label, budget, spent }) => {
     <div className="flex items-center gap-4 text-sm w-full">
       <span className="w-24 md:w-32 font-medium text-gray-600 truncate shrink-0">{label}</span>
       <div className="flex-1 flex flex-col gap-1 min-w-0">
-         {/* Spent Bar (Dark) */}
          <div className="flex items-center gap-2">
             <div className="h-6 bg-gray-600 rounded-sm flex items-center px-2 text-xs text-white font-medium whitespace-nowrap overflow-hidden" style={{ width: `${spentWidth}%` }}>
                ${spent.toLocaleString()}
             </div>
          </div>
-         {/* Budget Bar (Light) */}
          <div className="flex items-center gap-2">
             <div className="h-6 bg-gray-200 rounded-sm flex items-center px-2 text-xs text-gray-600 font-medium whitespace-nowrap overflow-hidden" style={{ width: `${budgetWidth}%` }}>
                ${budget.toLocaleString()}
@@ -179,30 +160,133 @@ const BudgetBar = ({ label, budget, spent }) => {
 };
 
 export default function BudgetPage() {
+  // --- States for Main Dialogs ---
+  const [isBudgetCategoryOpen, setIsBudgetCategoryOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+
+  // --- States for Upload/Download ---
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState("csv");
+
+  // --- File Upload Logic ---
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const validateFile = (file) => {
+    const validTypes = [
+      "text/csv",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ];
+    const validExtensions = [".csv", ".xls", ".xlsx"];
+    const fileExtension = file.name.substring(file.name.lastIndexOf("."));
+
+    if (
+      !validTypes.includes(file.type) &&
+      !validExtensions.includes(fileExtension)
+    ) {
+      alert("Please upload a CSV or Excel file (.csv, .xls, .xlsx)");
+      return false;
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      alert("File size must be less than 5MB");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file && validateFile(file)) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && validateFile(file)) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleUploadConfirm = () => {
+    if (!selectedFile) {
+      alert("Please select a file first");
+      return;
+    }
+    console.log("Uploading file:", selectedFile.name);
+    // Add real upload logic here
+    setIsUploadOpen(false);
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDownloadConfirm = () => {
+    console.log(`Downloading data in ${downloadFormat} format...`);
+    setIsDownloadOpen(false);
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 font-sans space-y-6">
       
       {/* 1. Header & Global Actions */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start lg:justify-end md:items-center gap-4">
         
-        {/* Search */}
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <Input 
-            placeholder="Search" 
-            className="pl-10 h-10 bg-white border-gray-200" 
-          />
-        </div>
-
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          <Button variant="secondary" className="bg-gray-200 text-gray-700 hover:bg-gray-300 flex-1 md:flex-none">
+          <Button 
+            variant="secondary" 
+            className="bg-gray-200 text-gray-700 hover:bg-gray-300 flex-1 md:flex-none cursor-pointer"
+            onClick={() => setIsBudgetCategoryOpen(true)}
+          >
             Budget Category <Plus size={16} className="ml-2" />
           </Button>
-          <Button variant="outline" className="bg-white text-gray-600 border-gray-200 flex-1 md:flex-none">
+          <Button 
+            variant="outline" 
+            className="bg-white text-gray-600 border-gray-200 flex-1 md:flex-none cursor-pointer"
+            onClick={() => setIsDownloadOpen(true)}
+          >
             Download Data <Download size={16} className="ml-2" />
           </Button>
-          <Button variant="outline" className="bg-white text-gray-600 border-gray-200 flex-1 md:flex-none">
+          <Button 
+            variant="outline" 
+            className="bg-white text-gray-600 border-gray-200 flex-1 md:flex-none cursor-pointer"
+            onClick={() => setIsUploadOpen(true)}
+          >
             Upload Data <Upload size={16} className="ml-2" />
           </Button>
         </div>
@@ -210,13 +294,10 @@ export default function BudgetPage() {
 
       {/* 2. Top Charts Section */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        
         {/* Left: Category Breakdown (Donut) */}
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col min-h-80">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Budget Category Breakdown</h3>
-          
           <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-8">
-            {/* Chart */}
             <div className="relative w-48 h-48 shrink-0">
                <DonutChart 
                  data={budgetBreakdownData} 
@@ -225,8 +306,6 @@ export default function BudgetPage() {
                  valueFormatter={(number) => `${number}%`}
                />
             </div>
-
-            {/* Legend */}
             <div className="space-y-3 w-full max-w-xs">
               {budgetBreakdownData.map((item) => (
                 <div key={item.name} className="flex items-center justify-between text-sm">
@@ -244,7 +323,6 @@ export default function BudgetPage() {
         {/* Right: Budget Vs Spent (Bar List) */}
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col min-h-80">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Budget Vs Spent (CAD)</h3>
-          
           <div className="flex-1 flex flex-col justify-center space-y-6 w-full">
              {budgetVsSpentData.map((item) => (
                 <BudgetBar 
@@ -256,18 +334,14 @@ export default function BudgetPage() {
              ))}
           </div>
         </div>
-
       </div>
 
       {/* 3. Recent Items Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        
         {/* Table Header / Toolbar */}
         <div className="p-5 border-b border-gray-100 flex flex-col lg:flex-row justify-between items-center gap-4">
           <h2 className="text-xl font-bold text-gray-900 w-full lg:w-auto">Recent Items Entered</h2>
-          
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-center">
-            
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600 hidden sm:inline-flex">
                   <Filter size={18} />
@@ -286,7 +360,10 @@ export default function BudgetPage() {
                </Button>
             </div>
 
-            <Button className="h-9 bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-200 gap-2 shadow-sm font-medium w-full sm:w-auto">
+            <Button 
+              className="h-9 bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-200 gap-2 shadow-sm font-medium w-full sm:w-auto cursor-pointer"
+              onClick={() => setIsReceiptOpen(true)}
+            >
               Add Receipt
               <Plus size={16} />
             </Button>
@@ -323,7 +400,7 @@ export default function BudgetPage() {
           </Table>
         </div>
 
-        {/* Pagination Footer */}
+        {/* Pagination */}
         <div className="p-4 border-t border-gray-100 flex items-center justify-center">
             <div className="flex items-center gap-1 text-xs text-gray-500">
                 <button className="px-2 py-1 hover:text-gray-900 disabled:opacity-50">&lt; Previous</button>
@@ -334,8 +411,262 @@ export default function BudgetPage() {
                 <button className="px-2 py-1 hover:text-gray-900">Next &gt;</button>
             </div>
         </div>
-
       </div>
+
+      {/* --- DIALOGS --- */}
+
+      {/* 1. Budget Category Dialog */}
+      <Dialog open={isBudgetCategoryOpen} onOpenChange={setIsBudgetCategoryOpen}>
+        <DialogContent className="sm:max-w-[700px] p-6 bg-white rounded-xl">
+          <DialogHeader className="mb-4 flex flex-row items-center justify-between">
+            <DialogTitle className="text-lg font-semibold text-gray-900">Budget Category</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-6 pb-6">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Category Name</label>
+              <Input placeholder="Name of item" className="bg-white border-gray-200" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Total Allocated Budget</label>
+              <Input placeholder="$" className="bg-white border-gray-200" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Budget Period</label>
+              <Input placeholder="Number of item" className="bg-white border-gray-200" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Status</label>
+              <div className="relative">
+                <select className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50 appearance-none text-gray-500">
+                   <option>Active/closed</option>
+                   <option>Active</option>
+                   <option>Closed</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 opacity-50 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <Button 
+              className="w-48 bg-[#1a1a1a] hover:bg-black text-white h-10 rounded-md"
+              onClick={() => setIsBudgetCategoryOpen(false)}
+            >
+              Submit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. Add Receipt / Invoice Dialog */}
+      <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
+        <DialogContent className="sm:max-w-[700px] p-6 bg-white rounded-xl">
+          <DialogHeader className="mb-4 flex flex-row items-center justify-between">
+            <DialogTitle className="text-lg font-semibold text-gray-900">Invoice 009</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-6 pb-6">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Item Name</label>
+              <Input placeholder="Name of item" className="bg-white border-gray-200" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Category</label>
+              <div className="relative">
+                <select className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50 appearance-none text-gray-500">
+                   <option>Select Category</option>
+                   <option>Youth Training</option>
+                   <option>Mental Health</option>
+                   <option>Cultural Events</option>
+                   <option>Admin & Staff</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 opacity-50 pointer-events-none" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Quantity</label>
+              <Input placeholder="Number of item" className="bg-white border-gray-200" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Unit Price ($)</label>
+              <Input placeholder="$" className="bg-white border-gray-200" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Total ($)</label>
+              <div className="relative">
+                 <Input placeholder="$" className="bg-white border-gray-200" />
+                 <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 opacity-50 pointer-events-none" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-600">Time/Date Added</label>
+              <Input placeholder="DD/MM/YYYY  HH:MM" className="bg-white border-gray-200 text-gray-400" />
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <Button 
+              className="w-48 bg-[#1a1a1a] hover:bg-black text-white h-10 rounded-md"
+              onClick={() => setIsReceiptOpen(false)}
+            >
+              Submit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Download Data Dialog */}
+      <Dialog open={isDownloadOpen} onOpenChange={setIsDownloadOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Export Data</DialogTitle>
+            <p className="text-sm text-gray-500">
+              Choose the format you'd like to export this table to.
+            </p>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <label
+                className={`flex flex-col items-center justify-between rounded-md border-2 p-4 cursor-pointer hover:bg-gray-50 transition-all ${
+                  downloadFormat === "csv"
+                    ? "border-gray-900 bg-gray-50"
+                    : "border-gray-200 bg-white"
+                }`}
+                onClick={() => setDownloadFormat("csv")}
+              >
+                <FileSpreadsheet
+                  className={`mb-3 h-6 w-6 ${
+                    downloadFormat === "csv" ? "text-gray-900" : "text-gray-600"
+                  }`}
+                />
+                <span
+                  className={`font-medium ${
+                    downloadFormat === "csv" ? "text-gray-900" : "text-gray-600"
+                  }`}
+                >
+                  CSV
+                </span>
+              </label>
+
+              <label
+                className={`flex flex-col items-center justify-between rounded-md border-2 p-4 cursor-pointer hover:bg-gray-50 transition-all ${
+                  downloadFormat === "pdf"
+                    ? "border-gray-900 bg-gray-50"
+                    : "border-gray-200 bg-white"
+                }`}
+                onClick={() => setDownloadFormat("pdf")}
+              >
+                <FileText
+                  className={`mb-3 h-6 w-6 ${
+                    downloadFormat === "pdf" ? "text-gray-900" : "text-gray-600"
+                  }`}
+                />
+                <span
+                  className={`font-medium ${
+                    downloadFormat === "pdf" ? "text-gray-900" : "text-gray-600"
+                  }`}
+                >
+                  PDF
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDownloadOpen(false)}
+              className="cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleDownloadConfirm} className="cursor-pointer">
+              Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. Upload Data Dialog */}
+      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Upload Data</DialogTitle>
+            <p className="text-sm text-gray-500">
+              Upload a .csv or .xlsx file to update the budget metrics.
+            </p>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {/* File upload area */}
+            {!selectedFile ? (
+              <div
+                onClick={handleFileClick}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg transition-colors cursor-pointer group ${
+                  isDragging
+                    ? "border-gray-900 bg-gray-100"
+                    : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <CloudUpload className="w-8 h-8 mb-2 text-gray-400 group-hover:text-gray-600" />
+                  <p className="mb-2 text-sm text-gray-500">
+                    <span className="font-semibold">Click to upload</span> or
+                    drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    CSV or Excel (MAX. 5MB)
+                  </p>
+                </div>
+              </div>
+            ) : (
+              // Selected file display
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {(selectedFile.size / 1024).toFixed(2)} KB
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleRemoveFile}
+                  className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUploadConfirm} disabled={!selectedFile}>
+              Upload File
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

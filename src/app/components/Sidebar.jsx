@@ -109,7 +109,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <div
               className={`w-full flex items-center justify-between rounded-xl transition-all duration-200 mb-1 ${
                 isActive
-                  ? "bg-orange-100 text-orange-700"
+                  ? "bg-blue-100 text-[#155dfc]"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
@@ -125,7 +125,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               >
                 <Icon
                   size={20}
-                  className={isActive ? "text-orange-600" : "text-gray-500"}
+                  className={isActive ? "text-[#155dfc]" : "text-gray-500"}
                 />
                 <span className="font-medium text-sm">{item.label}</span>
               </Link>
@@ -155,14 +155,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                 isSubItem ? "pl-12" : ""
               } ${
                 isActive
-                  ? "bg-orange-100 text-orange-700 shadow-sm"
+                  ? "bg-blue-100 text-[#155dfc] shadow-sm"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
               <div className="flex items-center space-x-3">
                 <Icon
                   size={20}
-                  className={isActive ? "text-orange-600" : "text-gray-500"}
+                  className={isActive ? "text-[#155dfc]" : "text-gray-500"}
                 />
                 <span className="font-medium text-sm">{item.label}</span>
               </div>
@@ -192,14 +192,14 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     `}
     >
       {/* Logo Section */}
-      <div className="p-6 bg-linear-to-r from-orange-500 to-orange-600 sticky top-0 z-10">
+      <div className="p-6 bg-linear-to-r from-[#155dfc] to-[#00298f] sticky top-0 z-10">
         <div className="flex items-center justify-center space-x-2">
           <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-orange-600 font-bold text-xl">YM</span>
+            <span className="text-[#155dfc] font-bold text-xl">YM</span>
           </div>
           <div className="text-white">
             <div className="font-semibold text-lg">YouthMetrics</div>
-            <div className="text-xs text-orange-100">Hub</div>
+            <div className="text-xs text-blue-100">Hub</div>
           </div>
         </div>
       </div>
@@ -212,7 +212,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       {/* User Profile Section */}
       <div className="p-4 border-t border-gray-200 sticky bottom-0 bg-white">
         <div className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
-          <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-sm font-bold text-white">
+          <div className="w-8 h-8 rounded-full bg-[#155dfc] flex items-center justify-center text-sm font-bold text-white">
             VE
           </div>
           <div className="flex-1">

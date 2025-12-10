@@ -21,7 +21,8 @@ import {
 	ChevronDown,
 } from "lucide-react";
 import { useState } from "react";
-import { AddEvent } from "@/app/components/ui/AddEvent";
+import { AddEvent } from "@/app/components/ui/AddEventDialog";
+import Link from "next/link";
 
 // --- 1. Data & Config ---
 const statsData = [
@@ -62,18 +63,58 @@ const statsData = [
 const eventsData = [
 	{
 		id: 1,
+		eventId: "EV-2025-001",
 		name: "Career Readiness Workshop",
-		category: "Employment",
-		description:
-			"A workshop to train youth on resume writing and interview prep",
-		date: "Jan 15, 2025",
+		category: "Leadership Training",
+		description: "A workshop to train youth on resume writing and interview prep",
+		date: "Jan 15, 2025 ",
 		time: "10:00 AM – 2:00 PM",
 		location: "Toronto, ON (YMCA Centre)",
 		facilitators: "Sarah Johnson",
 		status: "Completed",
+		totalAttended: 78,
+		participants: [
+			{
+				youthId: "25-0001",
+				name: "Alex Johnson",
+				age: "18-25",
+				gender: "Male",
+				dateRegistered: "2025-05-12",
+				status: "Active",
+				programs: "5 Programs",
+			},
+			{
+				youthId: "25-0002",
+				name: "Mia White",
+				age: "12-17",
+				gender: "Two-Spirit",
+				dateRegistered: "2025-06-03",
+				status: "Active",
+				programs: "7 Programs",
+			},
+			{
+				youthId: "25-0003",
+				name: "Jordan Patel",
+				age: "18-25",
+				gender: "Non-Binary",
+				dateRegistered: "2025-07-18",
+				status: "Dropout",
+				programs: "9 Programs",
+			},
+			{
+				youthId: "25-0004",
+				name: "Sophia Kim",
+				age: "18-25",
+				gender: "Female",
+				dateRegistered: "2025-05-27",
+				status: "Completed",
+				programs: "22 Programs",
+			},
+		],
 	},
 	{
 		id: 2,
+		eventId: "EV-2025-002",
 		name: "Digital Skills Bootcamp",
 		category: "Training",
 		description: "5-day bootcamp on coding & digital literacy",
@@ -82,9 +123,31 @@ const eventsData = [
 		location: "Vancouver, BC (Community Hub)",
 		facilitators: "David Chen, Priya Patel",
 		status: "Ongoing",
+		totalAttended: 45,
+		participants: [
+			{
+				youthId: "25-0001",
+				name: "Alex Johnson",
+				age: "18-25",
+				gender: "Male",
+				dateRegistered: "2025-05-12",
+				status: "Active",
+				programs: "5 Programs",
+			},
+			{
+				youthId: "25-0002",
+				name: "Mia White",
+				age: "12-17",
+				gender: "Two-Spirit",
+				dateRegistered: "2025-06-03",
+				status: "Active",
+				programs: "7 Programs",
+			},
+		],
 	},
 	{
 		id: 3,
+		eventId: "EV-2025-003",
 		name: "Mental Health Awareness",
 		category: "Health",
 		description: "Interactive session on stress management",
@@ -93,9 +156,12 @@ const eventsData = [
 		location: "Online (Zoom)",
 		facilitators: "Dr. Emily Wong",
 		status: "Upcoming",
+		totalAttended: 0,
+		participants: [],
 	},
 	{
 		id: 4,
+		eventId: "EV-2025-004",
 		name: "Youth Leadership Summit",
 		category: "Leadership",
 		description: "Annual summit for youth leaders",
@@ -104,9 +170,12 @@ const eventsData = [
 		location: "Montreal, QC (Convention Ctr)",
 		facilitators: "Michael Brown",
 		status: "Upcoming",
+		totalAttended: 0,
+		participants: [],
 	},
 	{
 		id: 5,
+		eventId: "EV-2025-005",
 		name: "Financial Literacy 101",
 		category: "Education",
 		description: "Basics of budgeting and saving",
@@ -115,6 +184,18 @@ const eventsData = [
 		location: "Calgary, AB (Public Library)",
 		facilitators: "Jessica Lee",
 		status: "Completed",
+		totalAttended: 32,
+		participants: [
+			{
+				youthId: "25-0002",
+				name: "Mia White",
+				age: "12-17",
+				gender: "Two-Spirit",
+				dateRegistered: "2025-06-03",
+				status: "Active",
+				programs: "7 Programs",
+			},
+		],
 	},
 ];
 
@@ -126,6 +207,8 @@ const StatusBadge = ({ status }) => {
 		Completed: "bg-green-50 text-green-700 border-green-200",
 		Ongoing: "bg-blue-50 text-blue-700 border-blue-200",
 		Upcoming: "bg-orange-50 text-orange-700 border-orange-200",
+		Active: "bg-emerald-50 text-emerald-600 border-emerald-100",
+		Dropout: "bg-gray-100 text-gray-500 border-gray-200",
 	};
 
 	return (
@@ -140,7 +223,8 @@ const StatusBadge = ({ status }) => {
 
 // --- 3. Main Page Component ---
 export default function EventsPage() {
-  const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+	const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+
 	return (
 		<div className='min-h-screen bg-gray-50 p-6 font-sans space-y-6'>
 			{/* Top Controls (Date Filter) */}
@@ -205,7 +289,9 @@ export default function EventsPage() {
 						</div>
 
 						{/* Add Event Button */}
-						<Button className='h-10 bg-gray-900 text-white hover:bg-black gap-2 shadow-sm w-full sm:w-auto'  onClick={() => setIsAddEventOpen(true)}>
+						<Button
+							className='h-10 bg-[#2054d2] text-white hover:bg-[#2054d2]/90 gap-2 shadow-sm w-full sm:w-auto cursor-pointer'
+							onClick={() => setIsAddEventOpen(true)}>
 							Add Event
 							<Plus size={16} />
 						</Button>
@@ -217,7 +303,7 @@ export default function EventsPage() {
 					<Table>
 						<TableHeader>
 							<TableRow className='bg-gray-50/50 hover:bg-gray-50/50 border-gray-100'>
-								<TableHead className='font-bold text-gray-900 pl-6 h-12'>
+								<TableHead className='font-bold text-gray-900 h-12 pl-6'>
 									Event Name
 								</TableHead>
 								<TableHead className='font-bold text-gray-900 h-12'>
@@ -247,9 +333,11 @@ export default function EventsPage() {
 							{eventsData.map((event) => (
 								<TableRow
 									key={event.id}
-									className='hover:bg-gray-50/50 border-gray-100 transition-colors'>
-									<TableCell className='font-semibold text-gray-900 pl-6 py-4 align-top'>
-										{event.name}
+									className='hover:bg-gray-50/50 border-gray-100 transition-colors cursor-pointer'>
+									<TableCell className='font-semibold text-gray-900 py-4 align-top pl-6'>
+										<Link href={`/app/events/${event.eventId}`} className="hover:underline">
+											{event.name}
+										</Link>
 									</TableCell>
 									<TableCell className='text-gray-600 py-4 align-top'>
 										{event.category}
@@ -260,7 +348,7 @@ export default function EventsPage() {
 									<TableCell className='text-gray-600 py-4 align-top whitespace-nowrap text-sm'>
 										{event.date}
 									</TableCell>
-									<TableCell className='text-gray-600 py-4 align-top whitespace-nowrap text-sm'>
+									<TableCell className='text-gray-600 py-4 align-top whitespace-nowrap text-sm '>
 										{event.time}
 									</TableCell>
 									<TableCell className='text-gray-600 py-4 align-top text-sm'>
@@ -302,10 +390,7 @@ export default function EventsPage() {
 					</div>
 				</div>
 			</div>
-      <AddEvent 
-        open={isAddEventOpen} 
-        onOpenChange={setIsAddEventOpen}
-      />
+			<AddEvent open={isAddEventOpen} onOpenChange={setIsAddEventOpen} />
 		</div>
 	);
 }

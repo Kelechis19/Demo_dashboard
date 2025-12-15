@@ -212,8 +212,8 @@ export default function AdminPage() {
 											</option>
 											<option value='Admin'>Admin</option>
 											<option value='Program Manager'>Program Manager</option>
-											<option value='Data Entry'>Data Entry</option>
-											<option value='Viewer'>Viewer</option>
+
+											<option value='Viewer'>User</option>
 										</select>
 										<ChevronDown
 											className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none'

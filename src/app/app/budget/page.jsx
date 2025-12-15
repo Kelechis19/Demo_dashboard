@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -34,12 +34,17 @@ import {
 } from "lucide-react";
 // Importing Recharts directly
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
+// Importing Sonner
+import { toast } from "sonner";
 
 // --- 1. Local Chart Component ---
 
 const DonutChart = ({ data, category, value, valueFormatter }) => {
+  // Calculate total for center text
+  const total = data.reduce((acc, curr) => acc + curr[value], 0);
+
   return (
-    <div className="w-full h-full min-h-[200px]">
+    <div className="w-full h-full min-h-[200px] relative">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -63,74 +68,35 @@ const DonutChart = ({ data, category, value, valueFormatter }) => {
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <span className="text-3xl font-bold text-gray-800">45%</span>
+        {/* displaying total count or a specific metric */}
+        <span className="text-xl font-bold text-gray-800">Total: {total}</span>
       </div>
     </div>
   );
 };
 
-// --- 2. Data ---
+// --- 2. Initial Data ---
 
-const budgetBreakdownData = [
+const initialBudgetBreakdown = [
   { name: "Youth Training", amount: 83, color: "#4b5563" },
   { name: "Mental Health", amount: 67, color: "#9ca3af" },
   { name: "Cultural Events", amount: 86, color: "#d1d5db" },
   { name: "Admin & Staff", amount: 100, color: "#e5e7eb" },
 ];
 
-const budgetVsSpentData = [
+const initialBudgetVsSpent = [
   { category: "Youth Training", budget: 60000, spent: 50000 },
   { category: "Mental Health", budget: 30000, spent: 20000 },
   { category: "Cultural Events", budget: 35000, spent: 30000 },
   { category: "Admin & Staff", budget: 25000, spent: 25000 },
 ];
 
-const recentItemsData = [
-  {
-    no: "IN_001",
-    category: "Cultural Events",
-    itemName: "Cultural Workshop Supplies",
-    qty: 12,
-    unitPrice: 24.50,
-    total: 294.00,
-    date: "2025-06-20 10:32"
-  },
-  {
-    no: "IN_002",
-    category: "Admin Staff",
-    itemName: "Program Coordinator Mileage",
-    qty: 1,
-    unitPrice: 96.80,
-    total: 96.80,
-    date: "2025-06-22 15:18"
-  },
-  {
-    no: "IN_003",
-    category: "Mental Health",
-    itemName: "Group Counseling Session",
-    qty: 1,
-    unitPrice: 450.00,
-    total: 450.00,
-    date: "2025-06-25 11:05"
-  },
-  {
-    no: "IN_004",
-    category: "Cultural Events",
-    itemName: "Bus Passes (Monthly Youth)",
-    qty: 15,
-    unitPrice: 90.00,
-    total: 1350.00,
-    date: "2025-07-02 09:14"
-  },
-  {
-    no: "IN_005",
-    category: "Mental Health",
-    itemName: "Healthy Snacks for Drop-in",
-    qty: 1,
-    unitPrice: 175.00,
-    total: 175.00,
-    date: "2025-07-08 13:47"
-  },
+const initialRecentItems = [
+  { no: "IN_001", category: "Cultural Events", itemName: "Cultural Workshop Supplies", qty: 12, unitPrice: 24.50, total: 294.00, date: "2025-06-20 10:32" },
+  { no: "IN_002", category: "Admin & Staff", itemName: "Program Coordinator Mileage", qty: 1, unitPrice: 96.80, total: 96.80, date: "2025-06-22 15:18" },
+  { no: "IN_003", category: "Mental Health", itemName: "Group Counseling Session", qty: 1, unitPrice: 450.00, total: 450.00, date: "2025-06-25 11:05" },
+  { no: "IN_004", category: "Cultural Events", itemName: "Bus Passes (Monthly Youth)", qty: 15, unitPrice: 90.00, total: 1350.00, date: "2025-07-02 09:14" },
+  { no: "IN_005", category: "Mental Health", itemName: "Healthy Snacks for Drop-in", qty: 1, unitPrice: 175.00, total: 175.00, date: "2025-07-08 13:47" },
 ];
 
 // --- 3. Helper Components ---
@@ -160,23 +126,117 @@ const BudgetBar = ({ label, budget, spent }) => {
 };
 
 export default function BudgetPage() {
-  // --- States for Main Dialogs ---
+  // --- Data States ---
+  const [budgetBreakdown, setBudgetBreakdown] = useState(initialBudgetBreakdown);
+  const [budgetVsSpent, setBudgetVsSpent] = useState(initialBudgetVsSpent);
+  const [recentItems, setRecentItems] = useState(initialRecentItems);
+
+  // --- UI States ---
   const [isBudgetCategoryOpen, setIsBudgetCategoryOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
-
-  // --- States for Upload/Download ---
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState("csv");
+
+  // --- Pagination State ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(recentItems.length / itemsPerPage);
+
+  const paginatedItems = recentItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // --- Forms State ---
+  const [newCategory, setNewCategory] = useState({ name: "", budget: "", period: "", status: "Active" });
+  const [newReceipt, setNewReceipt] = useState({ 
+    itemName: "", 
+    category: "", 
+    qty: "", 
+    unitPrice: "", 
+    date: new Date().toISOString().slice(0, 16) 
+  });
 
   // --- File Upload Logic ---
   const [selectedFile, setSelectedFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleFileClick = () => {
-    fileInputRef.current?.click();
+  // --- Handlers ---
+
+  // 1. Budget Category Handlers
+  const handleCategorySubmit = () => {
+    if (!newCategory.name || !newCategory.budget) {
+      toast.error("Please fill in the category name and budget.");
+      return;
+    }
+
+    const budgetAmount = parseFloat(newCategory.budget);
+
+    // Update Donut Data (Simulation)
+    setBudgetBreakdown([
+      ...budgetBreakdown,
+      { name: newCategory.name, amount: 10, color: "#1f2937" } // Defaulting new items to dark for visibility
+    ]);
+
+    // Update Bar Chart Data
+    setBudgetVsSpent([
+      ...budgetVsSpent,
+      { category: newCategory.name, budget: budgetAmount, spent: 0 }
+    ]);
+
+    toast.success(`Category "${newCategory.name}" added successfully!`);
+    setIsBudgetCategoryOpen(false);
+    setNewCategory({ name: "", budget: "", period: "", status: "Active" });
   };
+
+  // 2. Receipt Handlers
+  const handleReceiptSubmit = () => {
+    if (!newReceipt.itemName || !newReceipt.category || !newReceipt.qty || !newReceipt.unitPrice) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    const qty = parseFloat(newReceipt.qty);
+    const price = parseFloat(newReceipt.unitPrice);
+    const total = qty * price;
+
+    const newItem = {
+      no: `IN_00${recentItems.length + 1}`,
+      category: newReceipt.category,
+      itemName: newReceipt.itemName,
+      qty: qty,
+      unitPrice: price,
+      total: total,
+      date: newReceipt.date.replace("T", " ")
+    };
+
+    setRecentItems([newItem, ...recentItems]);
+    
+    // Update Spent amount in charts automatically
+    const updatedBudgetVsSpent = budgetVsSpent.map(item => {
+        if (item.category === newReceipt.category) {
+            return { ...item, spent: item.spent + total };
+        }
+        return item;
+    });
+    setBudgetVsSpent(updatedBudgetVsSpent);
+
+    toast.success("Receipt added and budget updated!");
+    setIsReceiptOpen(false);
+    // Reset form
+    setNewReceipt({ 
+        itemName: "", 
+        category: "", 
+        qty: "", 
+        unitPrice: "", 
+        date: new Date().toISOString().slice(0, 16) 
+    });
+  };
+
+  // 3. File Handlers
+  const handleFileClick = () => fileInputRef.current?.click();
 
   const validateFile = (file) => {
     const validTypes = [
@@ -187,86 +247,70 @@ export default function BudgetPage() {
     const validExtensions = [".csv", ".xls", ".xlsx"];
     const fileExtension = file.name.substring(file.name.lastIndexOf("."));
 
-    if (
-      !validTypes.includes(file.type) &&
-      !validExtensions.includes(fileExtension)
-    ) {
-      alert("Please upload a CSV or Excel file (.csv, .xls, .xlsx)");
+    if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+      toast.error("Invalid file type. Please upload CSV or Excel.");
       return false;
     }
 
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      alert("File size must be less than 5MB");
+      toast.error("File size exceeds 5MB limit.");
       return false;
     }
-
     return true;
   };
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
-    if (file && validateFile(file)) {
-      setSelectedFile(file);
-    }
+    if (file && validateFile(file)) setSelectedFile(file);
   };
 
   const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
+    e.preventDefault(); e.stopPropagation(); setIsDragging(true);
   };
-
   const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+    e.preventDefault(); e.stopPropagation(); setIsDragging(false);
   };
-
   const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+    e.preventDefault(); e.stopPropagation(); setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && validateFile(file)) {
-      setSelectedFile(file);
-    }
+    if (file && validateFile(file)) setSelectedFile(file);
   };
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleUploadConfirm = () => {
     if (!selectedFile) {
-      alert("Please select a file first");
+      toast.error("Please select a file first.");
       return;
     }
-    console.log("Uploading file:", selectedFile.name);
-    // Add real upload logic here
+    // Simulation of upload
+    toast.success(`Successfully uploaded ${selectedFile.name}`);
     setIsUploadOpen(false);
     setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleDownloadConfirm = () => {
-    console.log(`Downloading data in ${downloadFormat} format...`);
+    toast.success(`Downloading data in ${downloadFormat.toUpperCase()} format...`);
     setIsDownloadOpen(false);
   };
 
+  // 4. Pagination Handler
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+        setCurrentPage(newPage);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 font-sans space-y-6">
       
       {/* 1. Header & Global Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start lg:justify-end md:items-center gap-4">
-        
-        {/* Action Buttons */}
         <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <Button 
             variant="secondary" 
@@ -300,20 +344,20 @@ export default function BudgetPage() {
           <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-8">
             <div className="relative w-48 h-48 shrink-0">
                <DonutChart 
-                 data={budgetBreakdownData} 
+                 data={budgetBreakdown} 
                  category="name" 
                  value="amount" 
-                 valueFormatter={(number) => `${number}%`}
+                 valueFormatter={(number) => `${number}`}
                />
             </div>
             <div className="space-y-3 w-full max-w-xs">
-              {budgetBreakdownData.map((item) => (
+              {budgetBreakdown.map((item) => (
                 <div key={item.name} className="flex items-center justify-between text-sm">
                    <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                       <span className="text-gray-600 font-medium">{item.name}</span>
                    </div>
-                   <span className="font-bold text-gray-900">{item.amount}%</span>
+                   <span className="font-bold text-gray-900">{item.amount}</span>
                 </div>
               ))}
             </div>
@@ -324,7 +368,7 @@ export default function BudgetPage() {
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col min-h-80">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Budget Vs Spent (CAD)</h3>
           <div className="flex-1 flex flex-col justify-center space-y-6 w-full">
-             {budgetVsSpentData.map((item) => (
+             {budgetVsSpent.map((item) => (
                 <BudgetBar 
                   key={item.category}
                   label={item.category}
@@ -385,7 +429,7 @@ export default function BudgetPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentItemsData.map((item, index) => (
+              {paginatedItems.map((item, index) => (
                 <TableRow key={index} className="hover:bg-gray-50/50 border-gray-100 transition-colors">
                   <TableCell className="font-medium text-gray-500 pl-6 py-4 text-sm">{item.no}</TableCell>
                   <TableCell className="text-gray-900 py-4 text-sm font-medium">{item.category}</TableCell>
@@ -396,6 +440,11 @@ export default function BudgetPage() {
                   <TableCell className="pr-6 py-4 text-right text-gray-500 text-sm font-mono whitespace-nowrap">{item.date}</TableCell>
                 </TableRow>
               ))}
+              {paginatedItems.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">No items found</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -403,12 +452,33 @@ export default function BudgetPage() {
         {/* Pagination */}
         <div className="p-4 border-t border-gray-100 flex items-center justify-center">
             <div className="flex items-center gap-1 text-xs text-gray-500">
-                <button className="px-2 py-1 hover:text-gray-900 disabled:opacity-50">&lt; Previous</button>
-                <button className="w-6 h-6 flex items-center justify-center bg-gray-900 text-white rounded">1</button>
-                <button className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded">2</button>
-                <button className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded">3</button>
-                <button className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded">4</button>
-                <button className="px-2 py-1 hover:text-gray-900">Next &gt;</button>
+                <button 
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-2 py-1 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    &lt; Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button 
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
+                            currentPage === page 
+                            ? "bg-gray-900 text-white" 
+                            : "hover:bg-gray-100"
+                        }`}
+                    >
+                        {page}
+                    </button>
+                ))}
+                <button 
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-2 py-1 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Next &gt;
+                </button>
             </div>
         </div>
       </div>
@@ -419,27 +489,46 @@ export default function BudgetPage() {
       <Dialog open={isBudgetCategoryOpen} onOpenChange={setIsBudgetCategoryOpen}>
         <DialogContent className="sm:max-w-[700px] p-6 bg-white rounded-xl">
           <DialogHeader className="mb-4 flex flex-row items-center justify-between">
-            <DialogTitle className="text-lg font-semibold text-gray-900">Budget Category</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-gray-900">Add New Budget Category</DialogTitle>
           </DialogHeader>
           
           <div className="grid grid-cols-2 gap-6 pb-6">
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-600">Category Name</label>
-              <Input placeholder="Name of item" className="bg-white border-gray-200" />
+              <Input 
+                value={newCategory.name}
+                onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                placeholder="e.g. Transportation" 
+                className="bg-white border-gray-200" 
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-600">Total Allocated Budget</label>
-              <Input placeholder="$" className="bg-white border-gray-200" />
+              <label className="text-xs font-medium text-gray-600">Total Allocated Budget ($)</label>
+              <Input 
+                type="number"
+                value={newCategory.budget}
+                onChange={(e) => setNewCategory({...newCategory, budget: e.target.value})}
+                placeholder="5000" 
+                className="bg-white border-gray-200" 
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-600">Budget Period</label>
-              <Input placeholder="Number of item" className="bg-white border-gray-200" />
+              <label className="text-xs font-medium text-gray-600">Budget Period (Months)</label>
+              <Input 
+                value={newCategory.period}
+                onChange={(e) => setNewCategory({...newCategory, period: e.target.value})}
+                placeholder="12" 
+                className="bg-white border-gray-200" 
+              />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-600">Status</label>
               <div className="relative">
-                <select className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50 appearance-none text-gray-500">
-                   <option>Active/closed</option>
+                <select 
+                    value={newCategory.status}
+                    onChange={(e) => setNewCategory({...newCategory, status: e.target.value})}
+                    className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50 appearance-none text-gray-900"
+                >
                    <option>Active</option>
                    <option>Closed</option>
                 </select>
@@ -450,8 +539,8 @@ export default function BudgetPage() {
 
           <div className="flex justify-center">
             <Button 
-              className="w-48 bg-[#1a1a1a] hover:bg-black text-white h-10 rounded-md"
-              onClick={() => setIsBudgetCategoryOpen(false)}
+              className="w-48 bg-[#1a1a1a] hover:bg-black text-white h-10 rounded-md cursor-pointer"
+              onClick={handleCategorySubmit}
             >
               Submit
             </Button>
@@ -463,52 +552,82 @@ export default function BudgetPage() {
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
         <DialogContent className="sm:max-w-[700px] p-6 bg-white rounded-xl">
           <DialogHeader className="mb-4 flex flex-row items-center justify-between">
-            <DialogTitle className="text-lg font-semibold text-gray-900">Invoice 009</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-gray-900">Add New Receipt</DialogTitle>
           </DialogHeader>
           
           <div className="grid grid-cols-2 gap-6 pb-6">
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-600">Item Name</label>
-              <Input placeholder="Name of item" className="bg-white border-gray-200" />
+              <Input 
+                value={newReceipt.itemName}
+                onChange={(e) => setNewReceipt({...newReceipt, itemName: e.target.value})}
+                placeholder="Name of item" 
+                className="bg-white border-gray-200" 
+              />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-600">Category</label>
               <div className="relative">
-                <select className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50 appearance-none text-gray-500">
-                   <option>Select Category</option>
-                   <option>Youth Training</option>
-                   <option>Mental Health</option>
-                   <option>Cultural Events</option>
-                   <option>Admin & Staff</option>
+                <select 
+                    value={newReceipt.category}
+                    onChange={(e) => setNewReceipt({...newReceipt, category: e.target.value})}
+                    className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:cursor-not-allowed disabled:opacity-50 appearance-none text-gray-900"
+                >
+                   <option value="">Select Category</option>
+                   {budgetVsSpent.map(cat => (
+                       <option key={cat.category} value={cat.category}>{cat.category}</option>
+                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 opacity-50 pointer-events-none" />
               </div>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-600">Quantity</label>
-              <Input placeholder="Number of item" className="bg-white border-gray-200" />
+              <Input 
+                type="number"
+                value={newReceipt.qty}
+                onChange={(e) => setNewReceipt({...newReceipt, qty: e.target.value})}
+                placeholder="1" 
+                className="bg-white border-gray-200" 
+              />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-600">Unit Price ($)</label>
-              <Input placeholder="$" className="bg-white border-gray-200" />
+              <Input 
+                type="number"
+                value={newReceipt.unitPrice}
+                onChange={(e) => setNewReceipt({...newReceipt, unitPrice: e.target.value})}
+                placeholder="0.00" 
+                className="bg-white border-gray-200" 
+              />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-600">Total ($)</label>
               <div className="relative">
-                 <Input placeholder="$" className="bg-white border-gray-200" />
-                 <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 opacity-50 pointer-events-none" />
+                 <Input 
+                    value={
+                        (parseFloat(newReceipt.qty || 0) * parseFloat(newReceipt.unitPrice || 0)).toFixed(2)
+                    }
+                    readOnly
+                    className="bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" 
+                 />
               </div>
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-gray-600">Time/Date Added</label>
-              <Input placeholder="DD/MM/YYYY  HH:MM" className="bg-white border-gray-200 text-gray-400" />
+              <Input 
+                type="datetime-local"
+                value={newReceipt.date}
+                onChange={(e) => setNewReceipt({...newReceipt, date: e.target.value})}
+                className="bg-white border-gray-200 text-gray-900" 
+              />
             </div>
           </div>
 
           <div className="flex justify-center">
             <Button 
-              className="w-48 bg-[#1a1a1a] hover:bg-black text-white h-10 rounded-md"
-              onClick={() => setIsReceiptOpen(false)}
+              className="w-48 bg-[#1a1a1a] hover:bg-black text-white h-10 rounded-md cursor-pointer"
+              onClick={handleReceiptSubmit}
             >
               Submit
             </Button>

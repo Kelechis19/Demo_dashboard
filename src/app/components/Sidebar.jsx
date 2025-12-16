@@ -40,10 +40,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           href: "/app/youths-enrolled",
         },
         {
-          id: "events",
+          id: "programs",
           icon: Calendar,
-          label: "Events",
-          href: "/app/events",
+          label: "Programs",
+          href: "/app/programs",
         },
       ],
     },
